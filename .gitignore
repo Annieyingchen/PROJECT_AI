@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# 环境变量与密钥（绝不入库）
+.env
+.env.local
+.env.*.local
+
+# 系统/编辑器
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 日志与运行时产物
+*.log
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
