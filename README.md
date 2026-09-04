@@ -10,6 +10,8 @@
 
 ## 3 分钟演示路径
 
+### 方式一：Web 界面（推荐，面试演示用）
+
 ```bash
 # 1. 克隆
 
@@ -20,8 +22,23 @@ cd PROJECT_AI
 cp .env.example .env
 # 编辑 .env：填入 QA_LLM_BASE_URL / QA_LLM_API_KEY / QA_LLM_MODEL
 
-# 3. 运行
+# 3. 安装依赖 + 启动 Web
 pip install -r requirements.txt
+python app.py
+```
+
+浏览器打开 http://localhost:7860 ，勾选「启用工具调用」，依次输入：
+
+```
+你：北京今天天气怎么样？
+你：算一下 1024 * 768
+你：现在几点
+```
+
+### 方式二：CLI（命令行）
+
+```bash
+pip install httpx   # 只装核心依赖
 python main.py
 ```
 
@@ -69,6 +86,7 @@ python main.py
 | `qa.py` | 问答编排 | 纯问答 `ask()` + Agent 循环 `ask_with_tools()`，后续扩展 RAG 时只改 `build_messages()` |
 | `tools.py` | 工具层 | 新增工具只需「定义 + 执行函数」两步，Agent 循环自动接管 |
 | `main.py` | CLI 入口 | REPL 交互，支持 `/clear` `/quit`，含配置校验提示 |
+| `app.py` | Web 界面 | Gradio 封装，复用 qa/memory 层，浏览器 30 秒体验 |
 
 ---
 
@@ -126,7 +144,7 @@ python main.py
 | **RAG 检索增强** | `qa.py` 的 `build_messages()` 前加文档检索 → 检索结果注入 system prompt | 中 |
 | **新增工具** | `tools.py` 加 function 定义 + handler 函数，`qa.py` 无感知 | 低 |
 | **记忆升级** | `memory.py` 滑动窗口 → token 计数 / 摘要压缩 | 中 |
-| **Web 界面** | 用 Gradio / Streamlit 包一层 `qa.py`，`main.py` 保留 CLI | 低 |
+| **Web 界面** | ✅ 已实现（`app.py`，Gradio） | — |
 | **多模型路由** | `llm.py` 加 provider 分发，按任务自动切换模型 | 中 |
 
 ---

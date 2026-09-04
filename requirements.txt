@@ -1,1 +1,6 @@
+# 核心依赖：LLM 调用（唯一硬依赖）
 httpx>=0.24
+
+# Web 界面（app.py 需要，可选）
+# 不想用 Web 界面可以只装 httpx，CLI 版 python main.py 不受影响
+gradio>=4.0
