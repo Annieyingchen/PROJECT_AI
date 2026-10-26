@@ -1,0 +1,27 @@
+# AI 工作台
+
+在现有 Agent 后端之上新增独立工作台，保留原有 CLI 和 Gradio 入口。
+
+## 启动
+
+```bash
+pip install httpx
+cp .env.example .env
+# 填写 QA_LLM_BASE_URL / QA_LLM_API_KEY / QA_LLM_MODEL
+python workbench.py
+```
+
+访问 http://127.0.0.1:7861 。未配置模型时仍可打开界面，发送问题会提示配置方法。
+
+## 功能
+
+- 新建与切换会话、清空当前会话
+- 会话记录保存在当前浏览器 localStorage，刷新后恢复
+- 写作、计划、计算三类快捷提示词
+- 工具调用开关，复用 qa.ask / qa.ask_with_tools
+- Markdown 导出，Enter 发送、Shift + Enter 换行
+- 响应式布局、请求中状态、失败保留输入并允许重试
+
+服务只监听本机。API Key 从服务端 .env 读取，不发送到浏览器。该版本用于本地单用户工作；会话未经加密存储于浏览器，清理浏览器数据会删除记录。不要直接暴露到公网。
+
+工具调用复用现有工具层，时间和计算器可用；不提供天气、联网搜索或知识库检索。模型设置在服务端生效，修改后需要重启。网页保留全部对话，模型仅接收 QA_MAX_TURNS 指定的最近轮数。
