@@ -30,3 +30,7 @@ env/
 # Personal knowledge stays local
 knowledge.sqlite3
 knowledge.sqlite3-*
+
+# Local skill/plugin configuration
+extensions.sqlite3
+extensions.sqlite3-*
