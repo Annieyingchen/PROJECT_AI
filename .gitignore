@@ -34,3 +34,6 @@ knowledge.sqlite3-*
 # Local skill/plugin configuration
 extensions.sqlite3
 extensions.sqlite3-*
+
+# Generated pictures and private prompts
+drawing_assets/

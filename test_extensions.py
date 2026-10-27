@@ -9,7 +9,7 @@ import extensions
 with tempfile.TemporaryDirectory() as directory:
     extensions.DB_PATH = Path(directory) / 'extensions.sqlite3'
     initial = extensions.snapshot()
-    assert len(initial['plugins']) == 3
+    assert len(initial['plugins']) == 4
     skill = extensions.save_skill({'name': '编辑', 'description': '测试技能', 'prompt': '保留原意，输出修改说明。', 'enabled': True})
     assert extensions.resolve(skill['id'])['prompt'].startswith('保留原意')
     extensions.toggle('skill', skill['id'], False)

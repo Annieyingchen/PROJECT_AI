@@ -7,6 +7,7 @@ from uuid import uuid4
 
 DB_PATH = Path(__file__).with_name('extensions.sqlite3')
 BUILTINS = [
+    {'id': 'drawing', 'name': 'AI 绘图', 'description': '将画面描述发送给独立配置的图片模型，生成并下载图片。', 'kind': 'drawing', 'capability': 'drawing'},
     {'id': 'calculator', 'name': '精确计算', 'description': '通过 Agent 调用计算器执行数学表达式。', 'kind': 'tool', 'capability': 'calculator'},
     {'id': 'clock', 'name': '本地时间', 'description': '读取运行工作台的电脑日期与时间。', 'kind': 'tool', 'capability': 'get_current_time'},
     {'id': 'knowledge', 'name': '个人知识库', 'description': '检索本地文档，将相关片段发送给已配置的模型。', 'kind': 'knowledge', 'capability': 'knowledge'},

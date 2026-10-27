@@ -7,6 +7,7 @@ import config
 import memory
 import knowledge
 import extensions
+import drawing
 from urllib.parse import urlsplit, parse_qs
 
 
@@ -21,6 +22,20 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         url = urlsplit(self.path)
+        if url.path == '/api/drawing/status':
+            enabled = any(p['id'] == 'drawing' and p['enabled'] for p in extensions.snapshot()['plugins'])
+            return self.send_json(200, {**drawing.status(), 'enabled': enabled})
+        if url.path == '/api/drawing/file':
+            image = drawing.get_image(parse_qs(url.query).get('id', [''])[0])
+            if not image or not image[0].is_file():
+                return self.send_json(404, {'error': '图片不存在'})
+            data = image[0].read_bytes()
+            self.send_response(200)
+            self.send_header('Content-Type', image[1])
+            self.send_header('Content-Length', str(len(data)))
+            self.send_header('X-Content-Type-Options', 'nosniff')
+            self.end_headers()
+            return self.wfile.write(data)
         if url.path == '/api/extensions':
             return self.send_json(200, extensions.snapshot())
         if url.path == '/api/knowledge':
@@ -40,7 +55,7 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_POST(self):
-        if self.path not in ('/api/chat', '/api/knowledge', '/api/knowledge/delete', '/api/knowledge/search', '/api/extensions/skill', '/api/extensions/toggle', '/api/extensions/delete'):
+        if self.path not in ('/api/chat', '/api/knowledge', '/api/knowledge/delete', '/api/knowledge/search', '/api/extensions/skill', '/api/extensions/toggle', '/api/extensions/delete', '/api/drawing/generate'):
             return self.send_json(404, {'error': '接口不存在'})
         # Only accept browser requests from this local workbench.
         if self.headers.get('Origin') not in (None, 'http://127.0.0.1:7861', 'http://localhost:7861'):
@@ -52,6 +67,22 @@ class Handler(BaseHTTPRequestHandler):
             body = json.loads(self.rfile.read(length))
             if not isinstance(body, dict):
                 raise ValueError('请求格式错误')
+            if self.path == '/api/drawing/generate':
+                drawing.validate(body.get('prompt'), body.get('size', '1024x1024'), body.get('style', 'natural'))
+                if not any(p['id'] == 'drawing' and p['enabled'] for p in extensions.snapshot()['plugins']):
+                    return self.send_json(403, {'error': 'AI 绘图插件已停用，请在技能与插件中启用'})
+                if not drawing.status()['ready']:
+                    return self.send_json(503, {'error': '绘图模型尚未配置，请填写 QA_IMAGE_BASE_URL、QA_IMAGE_API_KEY、QA_IMAGE_MODEL 后重启'})
+                if not drawing.LOCK.acquire(blocking=False):
+                    return self.send_json(429, {'error': '已有绘图任务进行中，请稍后重试'})
+                try:
+                    return self.send_json(200, drawing.generate(body['prompt'], body.get('size', '1024x1024'), body.get('style', 'natural')))
+                except ValueError as exc:
+                    return self.send_json(502, {'error': str(exc)})
+                except Exception:
+                    return self.send_json(502, {'error': '绘图请求失败，请检查图片模型配置、网络、额度及接口兼容性；超时后请先检查服务商任务记录，避免重复计费'})
+                finally:
+                    drawing.LOCK.release()
             if self.path == '/api/extensions/skill':
                 return self.send_json(200, extensions.save_skill(body))
             if self.path == '/api/extensions/toggle':

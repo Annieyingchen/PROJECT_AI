@@ -53,3 +53,23 @@ python workbench.py
 - 当前停用知识库插件只关闭对话检索，仍可管理已有文档；对话工具总开关与插件开关同时开启才会调用工具。
 
 运行 `python test_extensions.py` 验证技能增删改、启停、提示词注入、插件工具过滤和停用工具执行拦截。真实模型对技能提示词的遵循程度仍需配置模型后验证。
+
+## AI 绘图
+
+顶部「绘图」或侧栏「AI 绘图」打开画面描述面板。支持自然描述、插画、摄影、水彩和极简风格；方形、横向和纵向三种尺寸。一次生成一张，可预览并下载原图。
+
+在 `.env` 单独配置：
+
+```dotenv
+QA_IMAGE_BASE_URL=图片服务的接口基础地址
+QA_IMAGE_API_KEY=图片服务密钥
+QA_IMAGE_MODEL=支持图片生成的模型名称
+```
+
+重启 `python workbench.py` 后生效。服务需支持 `POST /images/generations` 的 `model`、`prompt`、`size`、`n` 参数，并返回 `data[0].b64_json`。各服务支持的尺寸和模型不同，请按提供方文档配置；当前适配不下载 URL 返回结果。聊天接口与绘图接口独立，不能直接假定聊天模型支持出图。
+
+图片和提示词保存在本机 `drawing_assets/`，已从 Git 和源码包排除。刷新页面不保留结果面板，请在生成后及时下载；本地文件仍保留在目录中。生成操作把提示词发送给配置的服务并可能计费。请求超时不代表服务端任务已取消，请先检查服务商记录后再重试。
+
+「技能与插件」可停用 AI 绘图，也可安装「绘图提示词设计」技能，在聊天中先整理中文与英文提示词，再粘贴到绘图面板生成。
+
+运行 `python test_drawing.py` 检查请求格式、风格拼接、图片保存、路径检查、无配置和停用拦截。测试使用模拟服务，不生成真实图片。接口实现参考 [OpenAI Images API](https://developers.openai.com/api/reference/resources/images/methods/generate)。
