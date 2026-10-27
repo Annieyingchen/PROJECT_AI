@@ -2,8 +2,10 @@ import io, json, sys, tempfile, types
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 import knowledge as k
+import extensions
 with tempfile.TemporaryDirectory() as d:
  k.DB_PATH=Path(d)/'kb.sqlite3'
+ extensions.DB_PATH=Path(d)/'extensions.sqlite3'
  a=k.add_document('产品路线.md','星河工作台采用本地优先设计。季度目标是支持知识库检索和文档引用。')
  b=k.add_document('travel.txt','The Kyoto itinerary includes gardens and temples.')
  assert len(k.list_documents())==2
