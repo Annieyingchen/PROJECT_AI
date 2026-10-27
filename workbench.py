@@ -5,6 +5,8 @@ from pathlib import Path
 
 import config
 import memory
+import knowledge
+from urllib.parse import urlsplit, parse_qs
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -17,6 +19,12 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_GET(self):
+        url = urlsplit(self.path)
+        if url.path == '/api/knowledge':
+            return self.send_json(200, {'documents': knowledge.list_documents()})
+        if url.path == '/api/knowledge/document':
+            doc = knowledge.get_document(parse_qs(url.query).get('id', [''])[0])
+            return self.send_json(200 if doc else 404, doc or {'error': '文档不存在'})
         if self.path == '/api/status':
             return self.send_json(200, {'ready': config.is_ready(), 'model': config.MODEL, 'max_turns': config.MAX_TURNS})
         if self.path not in ('/', '/index.html'):
@@ -29,7 +37,7 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_POST(self):
-        if self.path != '/api/chat':
+        if self.path not in ('/api/chat', '/api/knowledge', '/api/knowledge/delete', '/api/knowledge/search'):
             return self.send_json(404, {'error': '接口不存在'})
         # Only accept browser requests from this local workbench.
         if self.headers.get('Origin') not in (None, 'http://127.0.0.1:7861', 'http://localhost:7861'):
@@ -39,6 +47,21 @@ class Handler(BaseHTTPRequestHandler):
             if not 0 < length <= 262144:
                 return self.send_json(413, {'error': '请求过大或为空'})
             body = json.loads(self.rfile.read(length))
+            if not isinstance(body, dict):
+                raise ValueError('请求格式错误')
+            if self.path == '/api/knowledge':
+                return self.send_json(201, knowledge.add_document(body.get('name'), body.get('content')))
+            if self.path == '/api/knowledge/delete':
+                doc_id = body.get('id')
+                if not isinstance(doc_id, str):
+                    raise ValueError('文档 ID 格式错误')
+                removed = knowledge.delete_document(doc_id)
+                return self.send_json(200 if removed else 404, {'deleted': removed})
+            if self.path == '/api/knowledge/search':
+                query = body.get('query')
+                if not isinstance(query, str) or not query.strip() or len(query) > 16000:
+                    raise ValueError('请输入检索内容')
+                return self.send_json(200, {'sources': knowledge.search(query)})
             question = body.get('question', '')
             history = body.get('history', [])
             if not isinstance(question, str) or not question.strip() or len(question) > 16000:
@@ -46,7 +69,7 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(history, list) or any(not isinstance(m, dict) or m.get('role') not in ('user', 'assistant') or not isinstance(m.get('content'), str) for m in history):
                 raise ValueError('会话记录格式错误')
         except (ValueError, TypeError, AttributeError):
-            return self.send_json(400, {'error': '请求格式错误，请检查问题和会话记录'})
+            return self.send_json(400, {'error': '请求格式错误，请检查输入、文档大小及知识库容量'})
         if not config.is_ready():
             return self.send_json(503, {'error': '尚未连接模型。请在 .env 配置 QA_LLM_BASE_URL、QA_LLM_API_KEY 和 QA_LLM_MODEL，然后重启服务。'})
         mem = memory.ConversationMemory(max_turns=config.MAX_TURNS)
@@ -54,10 +77,11 @@ class Handler(BaseHTTPRequestHandler):
             mem.add(message['role'], message['content'])
         try:
             import qa
-            answer = (qa.ask_with_tools if body.get('use_tools', True) else qa.ask)(mem, question.strip())
+            sources = knowledge.search(question) if body.get('use_knowledge', False) else []
+            answer = (qa.ask_with_tools if body.get('use_tools', True) else qa.ask)(mem, question.strip(), context=knowledge.context(sources))
             if not answer:
                 return self.send_json(502, {'error': '模型未返回答案，工具调用可能已达到步数上限，请重试。'})
-            self.send_json(200, {'answer': answer})
+            self.send_json(200, {'answer': answer, 'sources': sources, 'knowledge_used': bool(sources)})
         except Exception:
             self.send_json(502, {'error': '模型请求失败，请检查服务端模型配置、网络及额度后重试。'})
 
