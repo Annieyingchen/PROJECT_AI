@@ -47,3 +47,9 @@ MAX_AGENT_STEPS = int(os.getenv("QA_MAX_AGENT_STEPS", "4"))
 def is_ready() -> bool:
     """三项必填是否齐全。"""
     return bool(BASE_URL and API_KEY and MODEL)
+
+
+# 绘图接口独立配置，必须支持 /images/generations 并返回 b64_json。
+IMAGE_BASE_URL = os.getenv("QA_IMAGE_BASE_URL", "").rstrip("/")
+IMAGE_API_KEY = os.getenv("QA_IMAGE_API_KEY", "")
+IMAGE_MODEL = os.getenv("QA_IMAGE_MODEL", "")
